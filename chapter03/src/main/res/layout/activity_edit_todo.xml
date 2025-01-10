@@ -46,9 +46,9 @@
     <TextView
         android:id="@+id/text_view_due_date"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:padding="8dp"
+        android:layout_height="48dp"
+        android:layout_margin="12dp"
+        android:padding="12dp"
         android:background="@android:drawable/editbox_background"
         android:drawableEnd="@android:drawable/arrow_down_float"
         android:text="输入截止时间（可选）" />
@@ -56,9 +56,9 @@
     <TextView
         android:id="@+id/text_view_add_images"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:padding="8dp"
+        android:layout_height="48dp"
+        android:layout_margin="12dp"
+        android:padding="12dp"
         android:background="@android:drawable/editbox_background"
         android:drawableEnd="@android:drawable/ic_menu_camera"
         android:text="选择照片" />
