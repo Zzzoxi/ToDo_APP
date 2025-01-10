@@ -82,7 +82,21 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         // 设置待办事项列表
         adapter = new TodoAdapter(todoList, this);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemViewCacheSize(20);
+        recyclerView.setDrawingCacheEnabled(true);
+        recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+
+        // 使用自定义的LayoutManager来优化性能
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this) {
+            @Override
+            public boolean supportsPredictiveItemAnimations() {
+                return false;
+            }
+        };
+        recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
+        setupItemTouchHelper(recyclerView);
 
         // 设置图片预览列表
         recyclerViewImages = findViewById(R.id.recycler_view_images);
@@ -368,5 +382,57 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         // 隐藏软键盘
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(editTextTodo.getWindowToken(), 0);
+    }
+
+    private void setupItemTouchHelper(RecyclerView recyclerView) {
+        ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) { // 只允许上下拖动，禁用左右滑动
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView,
+                                  @NonNull RecyclerView.ViewHolder viewHolder,
+                                  @NonNull RecyclerView.ViewHolder target) {
+                int fromPosition = viewHolder.getAdapterPosition();
+                int toPosition = target.getAdapterPosition();
+
+                // 更新列表顺序
+                Todo movedItem = todoList.get(fromPosition);
+                todoList.remove(fromPosition);
+                todoList.add(toPosition, movedItem);
+
+                // 更新所有受影响项目的position
+                for (int i = Math.min(fromPosition, toPosition);
+                     i <= Math.max(fromPosition, toPosition); i++) {
+                    Todo todo = todoList.get(i);
+                    todo.setPosition(i);
+                    dbHelper.updateTodo(todo);
+                }
+
+                adapter.notifyItemMoved(fromPosition, toPosition);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                // 不需要实现，因为我们禁用了滑动
+            }
+
+            @Override
+            public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+                super.onSelectedChanged(viewHolder, actionState);
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    viewHolder.itemView.setAlpha(0.7f);
+                }
+            }
+
+            @Override
+            public void clearView(@NonNull RecyclerView recyclerView,
+                                  @NonNull RecyclerView.ViewHolder viewHolder) {
+                super.clearView(recyclerView, viewHolder);
+                viewHolder.itemView.setAlpha(1.0f);
+            }
+        };
+
+        new ItemTouchHelper(callback).attachToRecyclerView(recyclerView);
     }
 }

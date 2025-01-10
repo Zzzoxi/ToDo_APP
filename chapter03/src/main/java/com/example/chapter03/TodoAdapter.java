@@ -1,5 +1,6 @@
 package com.example.chapter03;
 
+
 import android.app.Dialog;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -62,28 +63,34 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
             holder.textViewDueTime.setVisibility(View.GONE);
         }
 
-        // 设置图片
+        // 优化图片加载
         if (!todo.getImagePaths().isEmpty()) {
             holder.recyclerViewImages.setVisibility(View.VISIBLE);
-            holder.recyclerViewImages.setLayoutManager(
-                    new LinearLayoutManager(holder.itemView.getContext(),
-                            LinearLayoutManager.HORIZONTAL, false));
-            ImageAdapter imageAdapter = new ImageAdapter(
-                    holder.itemView.getContext(),
-                    todo.getImagePaths(),
-                    false,
-                    new ImageAdapter.OnImageClickListener() {
-                        @Override
-                        public void onImageClick(String imagePath) {
-                            showFullImage(holder.itemView.getContext(), imagePath);
-                        }
+            if (holder.recyclerViewImages.getLayoutManager() == null) {
+                holder.recyclerViewImages.setLayoutManager(
+                        new LinearLayoutManager(holder.itemView.getContext(),
+                                LinearLayoutManager.HORIZONTAL, false));
+            }
 
-                        @Override
-                        public void onDeleteClick(int position) {
-                            // 待办列表中的图片不可删除
-                        }
-                    });
-            holder.recyclerViewImages.setAdapter(imageAdapter);
+            // 使用延迟加载
+            holder.recyclerViewImages.post(() -> {
+                ImageAdapter imageAdapter = new ImageAdapter(
+                        holder.itemView.getContext(),
+                        todo.getImagePaths(),
+                        false,
+                        new ImageAdapter.OnImageClickListener() {
+                            @Override
+                            public void onImageClick(String imagePath) {
+                                showFullImage(holder.itemView.getContext(), imagePath);
+                            }
+
+                            @Override
+                            public void onDeleteClick(int position) {
+                                // 待办列表中的图片不可删除
+                            }
+                        });
+                holder.recyclerViewImages.setAdapter(imageAdapter);
+            });
         } else {
             holder.recyclerViewImages.setVisibility(View.GONE);
         }
@@ -139,6 +146,14 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
     @Override
     public int getItemCount() {
         return todoList.size();
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull TodoViewHolder holder) {
+        super.onViewRecycled(holder);
+        if (holder.recyclerViewImages != null) {
+            holder.recyclerViewImages.setAdapter(null);
+        }
     }
 
     static class TodoViewHolder extends RecyclerView.ViewHolder {
