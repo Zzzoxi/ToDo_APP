@@ -1,4 +1,3 @@
-
 package com.example.chapter03;
 
 import android.app.DatePickerDialog;
@@ -30,6 +29,11 @@ import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.view.View;
+import android.widget.ImageView;
+import com.bumptech.glide.Glide;
 
 public class EditTodoActivity extends AppCompatActivity {
     private static final int PICK_IMAGES_REQUEST = 1;
@@ -82,7 +86,26 @@ public class EditTodoActivity extends AppCompatActivity {
         // 设置图片列表
         recyclerViewImages.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        imageAdapter = new ImageAdapter(this, selectedImagePaths, true, null);
+        imageAdapter = new ImageAdapter(this, selectedImagePaths, true,
+                new ImageAdapter.OnImageClickListener() {
+                    @Override
+                    public void onImageClick(String imagePath) {
+                        showFullImage(imagePath);
+                    }
+
+                    @Override
+                    public void onDeleteClick(int position) {
+                        new AlertDialog.Builder(EditTodoActivity.this)
+                                .setTitle("删除图片")
+                                .setMessage("确定要删除这张图片吗？")
+                                .setPositiveButton("确定", (dialog, which) -> {
+                                    selectedImagePaths.remove(position);
+                                    imageAdapter.notifyItemRemoved(position);
+                                })
+                                .setNegativeButton("取消", null)
+                                .show();
+                    }
+                });
         recyclerViewImages.setAdapter(imageAdapter);
 
         // 设置点击事件
@@ -225,5 +248,20 @@ public class EditTodoActivity extends AppCompatActivity {
 
         setResult(RESULT_OK);
         finish();
+    }
+
+    private void showFullImage(String imagePath) {
+        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        View view = getLayoutInflater().inflate(R.layout.dialog_image_viewer, null);
+        ImageView imageView = view.findViewById(R.id.image_view_full);
+        ImageButton buttonClose = view.findViewById(R.id.button_close);
+
+        Glide.with(this)
+                .load(imagePath)
+                .into(imageView);
+
+        buttonClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.setContentView(view);
+        dialog.show();
     }
 }

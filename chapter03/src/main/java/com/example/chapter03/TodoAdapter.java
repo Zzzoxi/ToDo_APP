@@ -1,5 +1,7 @@
 package com.example.chapter03;
 
+import android.app.Dialog;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -7,11 +9,15 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -66,7 +72,17 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
                     holder.itemView.getContext(),
                     todo.getImagePaths(),
                     false,
-                    null); // 移除showFullImage调用,因为该方法未定义
+                    new ImageAdapter.OnImageClickListener() {
+                        @Override
+                        public void onImageClick(String imagePath) {
+                            showFullImage(holder.itemView.getContext(), imagePath);
+                        }
+
+                        @Override
+                        public void onDeleteClick(int position) {
+                            // 待办列表中的图片不可删除
+                        }
+                    });
             holder.recyclerViewImages.setAdapter(imageAdapter);
         } else {
             holder.recyclerViewImages.setVisibility(View.GONE);
@@ -103,6 +119,21 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
         });
 
         popup.show();
+    }
+
+    private void showFullImage(Context context, String imagePath) {
+        Dialog dialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_image_viewer, null);
+        ImageView imageView = view.findViewById(R.id.image_view_full);
+        ImageButton buttonClose = view.findViewById(R.id.button_close);
+
+        Glide.with(context)
+                .load(imagePath)
+                .into(imageView);
+
+        buttonClose.setOnClickListener(v -> dialog.dismiss());
+        dialog.setContentView(view);
+        dialog.show();
     }
 
     @Override

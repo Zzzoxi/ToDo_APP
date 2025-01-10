@@ -87,7 +87,19 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         // 设置图片预览列表
         recyclerViewImages = findViewById(R.id.recycler_view_images);
         recyclerViewImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        imageAdapter = new ImageAdapter(this, selectedImagePaths, true, this::showFullImage);
+        imageAdapter = new ImageAdapter(this, selectedImagePaths, true,
+                new ImageAdapter.OnImageClickListener() {
+                    @Override
+                    public void onImageClick(String imagePath) {
+                        showFullImage(imagePath);
+                    }
+
+                    @Override
+                    public void onDeleteClick(int position) {
+                        selectedImagePaths.remove(position);
+                        imageAdapter.notifyItemRemoved(position);
+                    }
+                });
         recyclerViewImages.setAdapter(imageAdapter);
 
         // 设置输入框点击事件，显示下拉面板
