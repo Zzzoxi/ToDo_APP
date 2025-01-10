@@ -1,21 +1,21 @@
 package com.example.chapter03;
 
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
-import android.content.Context;
-import android.app.Dialog;
-import android.widget.ImageView;
-import com.bumptech.glide.Glide;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder> {
     private List<Todo> todoList;
@@ -23,6 +23,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
 
     public interface TodoItemListener {
         void onItemChecked(int position, boolean isChecked);
+        void onDeleteItem(int position);
     }
 
     public TodoAdapter(List<Todo> todoList, TodoItemListener listener) {
@@ -44,20 +45,17 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
         holder.textViewTodo.setText(todo.getText());
         holder.checkBoxTodo.setChecked(todo.isCompleted());
 
+        // 设置截止时间
         if (todo.getDueTime() > 0) {
             holder.textViewDueTime.setVisibility(View.VISIBLE);
-            SimpleDateFormat sdf = new SimpleDateFormat("截止时间：yyyy-MM-dd HH:mm", Locale.getDefault());
-            holder.textViewDueTime.setText(sdf.format(new Date(todo.getDueTime())));
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+            String dueTimeText = "截止时间：" + sdf.format(new Date(todo.getDueTime()));
+            holder.textViewDueTime.setText(dueTimeText);
         } else {
             holder.textViewDueTime.setVisibility(View.GONE);
         }
 
-        holder.checkBoxTodo.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (listener != null) {
-                listener.onItemChecked(position, isChecked);
-            }
-        });
-
+        // 设置图片
         if (!todo.getImagePaths().isEmpty()) {
             holder.recyclerViewImages.setVisibility(View.VISIBLE);
             holder.recyclerViewImages.setLayoutManager(
@@ -67,22 +65,41 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
                     holder.itemView.getContext(),
                     todo.getImagePaths(),
                     false,
-                    path -> showFullImage(holder.itemView.getContext(), path));
+                    null);
             holder.recyclerViewImages.setAdapter(imageAdapter);
         } else {
             holder.recyclerViewImages.setVisibility(View.GONE);
         }
+
+        holder.checkBoxTodo.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (listener != null) {
+                listener.onItemChecked(position, isChecked);
+            }
+        });
+
+        // 设置更多选项按钮
+        holder.buttonMore.setOnClickListener(v -> showPopupMenu(v, position));
     }
 
-    private void showFullImage(Context context, String imagePath) {
-        Dialog dialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        ImageView imageView = new ImageView(context);
-        Glide.with(context)
-                .load(imagePath)
-                .into(imageView);
-        dialog.setContentView(imageView);
-        imageView.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
+    private void showPopupMenu(View view, int position) {
+        PopupMenu popup = new PopupMenu(view.getContext(), view);
+        popup.getMenu().add(Menu.NONE, 1, Menu.NONE, "编辑");
+        popup.getMenu().add(Menu.NONE, 2, Menu.NONE, "删除");
+
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                // TODO: 处理编辑功能
+                return true;
+            } else if (item.getItemId() == 2) {
+                if (listener != null) {
+                    listener.onDeleteItem(position);
+                }
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
     }
 
     @Override
@@ -95,6 +112,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
         TextView textViewTodo;
         TextView textViewDueTime;
         RecyclerView recyclerViewImages;
+        ImageButton buttonMore;
 
         TodoViewHolder(View itemView) {
             super(itemView);
@@ -102,6 +120,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
             textViewTodo = itemView.findViewById(R.id.text_view_todo);
             textViewDueTime = itemView.findViewById(R.id.text_view_due_time);
             recyclerViewImages = itemView.findViewById(R.id.recycler_view_todo_images);
+            buttonMore = itemView.findViewById(R.id.button_more);
         }
     }
 }

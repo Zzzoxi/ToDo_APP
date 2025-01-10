@@ -1,4 +1,5 @@
 package com.example.chapter03;
+
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.core.content.ContextCompat;
 import java.util.List;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class CompletedActivity extends AppCompatActivity {
     private TodoDbHelper dbHelper;
@@ -78,5 +80,25 @@ public class CompletedActivity extends AppCompatActivity {
         };
 
         new ItemTouchHelper(callback).attachToRecyclerView(recyclerView);
+
+        // 设置底部导航
+        BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
+        bottomNavigation.setSelectedItemId(R.id.navigation_completed); // 设置当前选中项
+        bottomNavigation.setOnNavigationItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.navigation_todo) {
+                finish();
+                overridePendingTransition(0, 0); // 添加无动画切换
+                return true;
+            }
+            return true;
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 确保返回时选中正确的标签
+        BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
+        bottomNavigation.setSelectedItemId(R.id.navigation_completed);
     }
 }
