@@ -48,6 +48,7 @@ import android.app.AlertDialog;
 public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoItemListener {
     private static final int PICK_IMAGES_REQUEST = 1;
     private static final int PERMISSION_REQUEST_CODE = 2;
+    private static final int EDIT_TODO_REQUEST = 3;
     private List<Todo> todoList;
     private TodoAdapter adapter;
     private TodoDbHelper dbHelper;
@@ -66,7 +67,8 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
 
         // 初始化存储
         dbHelper = new TodoDbHelper(this);
-        todoList = dbHelper.getAllTodos();
+        todoList = new ArrayList<>(); // 确保初始化列表
+        todoList.addAll(dbHelper.getAllTodos());
 
         // 初始化视图
         editTextTodo = findViewById(R.id.edit_text_todo);
@@ -265,6 +267,14 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
             recyclerViewImages.setVisibility(View.VISIBLE);
             imageAdapter.notifyDataSetChanged();
         }
+
+        if (requestCode == EDIT_TODO_REQUEST && resultCode == RESULT_OK) {
+            // 刷新列表
+            todoList.clear(); // 清空当前列表
+            todoList.addAll(dbHelper.getAllTodos()); // 重新加载所有待办
+            adapter.notifyDataSetChanged(); // 通知适配器数据已更新
+        }
+
     }
 
     private String getRealPathFromUri(Uri uri) {
@@ -317,6 +327,14 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    @Override
+    public void onEditItem(int position) {
+        Todo todo = todoList.get(position);
+        Intent intent = new Intent(this, EditTodoActivity.class);
+        intent.putExtra("todo_id", todo.getId());
+        startActivityForResult(intent, EDIT_TODO_REQUEST);
     }
 
     private void clearAndCloseDropdown() {

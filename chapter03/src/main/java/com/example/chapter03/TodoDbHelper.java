@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
 import java.util.List;
+import android.util.Log;
 
 public class TodoDbHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "todo.db";
@@ -121,15 +122,40 @@ public class TodoDbHelper extends SQLiteOpenHelper {
 
     public void updateTodo(Todo todo) {
         SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_TEXT, todo.getText());
-        values.put(COLUMN_COMPLETED, todo.isCompleted() ? 1 : 0);
-        values.put(COLUMN_POSITION, todo.getPosition());
-        values.put(COLUMN_COMPLETED_TIME, todo.getCompletedTime());
-        values.put(COLUMN_DUE_TIME, todo.getDueTime());
-        db.update(TABLE_TODO, values, COLUMN_ID + " = ?",
-                new String[]{String.valueOf(todo.getId())});
-        db.close();
+        db.beginTransaction();
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_TEXT, todo.getText());
+            values.put(COLUMN_COMPLETED, todo.isCompleted() ? 1 : 0);
+            values.put(COLUMN_POSITION, todo.getPosition());
+            values.put(COLUMN_COMPLETED_TIME, todo.getCompletedTime());
+            values.put(COLUMN_DUE_TIME, todo.getDueTime());
+
+            // 更新todo基本信息
+            int updatedRows = db.update(TABLE_TODO, values, COLUMN_ID + " = ?",
+                    new String[]{String.valueOf(todo.getId())});
+            Log.d("TodoDbHelper", "Updated rows: " + updatedRows);
+
+            // 删除原有的图片记录
+            int deletedRows = db.delete(TABLE_IMAGES, COLUMN_TODO_ID + " = ?",
+                    new String[]{String.valueOf(todo.getId())});
+            Log.d("TodoDbHelper", "Deleted image rows: " + deletedRows);
+
+            // 插入新的图片记录
+            for (String imagePath : todo.getImagePaths()) {
+                ContentValues imageValues = new ContentValues();
+                imageValues.put(COLUMN_TODO_ID, todo.getId());
+                imageValues.put(COLUMN_IMAGE_PATH, imagePath);
+                long newRowId = db.insert(TABLE_IMAGES, null, imageValues);
+                Log.d("TodoDbHelper", "Inserted image row: " + newRowId);
+            }
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     public void deleteAllTodos() {
@@ -189,5 +215,51 @@ public class TodoDbHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_TODO, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
         db.close();
+    }
+
+    public Todo getTodoById(long id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Todo todo = null;
+
+        try {
+            // 首先查询todo的基本信息
+            String selectQuery = "SELECT * FROM " + TABLE_TODO +
+                    " WHERE " + COLUMN_ID + " = ?";
+
+            try (Cursor cursor = db.rawQuery(selectQuery, new String[]{String.valueOf(id)})) {
+                if (cursor.moveToFirst()) {
+                    String text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TEXT));
+                    int position = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_POSITION));
+                    boolean completed = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_COMPLETED)) == 1;
+                    long completedTime = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_COMPLETED_TIME));
+                    long dueTime = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DUE_TIME));
+
+                    todo = new Todo(text, position);
+                    todo.setId(id);
+                    todo.setCompleted(completed);
+                    todo.setCompletedTime(completedTime);
+                    todo.setDueTime(dueTime);
+
+                    // 查询关联的图片
+                    String imageQuery = "SELECT " + COLUMN_IMAGE_PATH +
+                            " FROM " + TABLE_IMAGES +
+                            " WHERE " + COLUMN_TODO_ID + " = ?";
+
+                    try (Cursor imageCursor = db.rawQuery(imageQuery, new String[]{String.valueOf(id)})) {
+                        while (imageCursor.moveToNext()) {
+                            String imagePath = imageCursor.getString(
+                                    imageCursor.getColumnIndexOrThrow(COLUMN_IMAGE_PATH));
+                            todo.addImagePath(imagePath);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            db.close();
+        }
+
+        return todo;
     }
 }

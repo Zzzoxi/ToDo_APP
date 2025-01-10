@@ -24,6 +24,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
     public interface TodoItemListener {
         void onItemChecked(int position, boolean isChecked);
         void onDeleteItem(int position);
+        void onEditItem(int position);
     }
 
     public TodoAdapter(List<Todo> todoList, TodoItemListener listener) {
@@ -65,7 +66,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
                     holder.itemView.getContext(),
                     todo.getImagePaths(),
                     false,
-                    null);
+                    null); // 移除showFullImage调用,因为该方法未定义
             holder.recyclerViewImages.setAdapter(imageAdapter);
         } else {
             holder.recyclerViewImages.setVisibility(View.GONE);
@@ -88,7 +89,9 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
 
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) {
-                // TODO: 处理编辑功能
+                if (listener != null) {
+                    listener.onEditItem(position);
+                }
                 return true;
             } else if (item.getItemId() == 2) {
                 if (listener != null) {
