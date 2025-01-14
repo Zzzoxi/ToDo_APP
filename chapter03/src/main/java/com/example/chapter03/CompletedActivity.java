@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,21 +18,33 @@ import java.util.List;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class CompletedActivity extends AppCompatActivity {
-    private TodoDbHelper dbHelper;
-    private CompletedAdapter adapter;
+    private TodoDbHelper dbHelper;   // 数据库帮助类
+    private CompletedAdapter adapter;   // 已完成事项适配器
+    private RecyclerView recyclerView; // 显示已完成事项的 RecyclerView
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_completed);
+        setContentView(R.layout.activity_completed);  // 设置已完成事项页面的布局
 
-        dbHelper = new TodoDbHelper(this);
-        List<Todo> completedList = dbHelper.getCompletedTodos();
+        dbHelper = new TodoDbHelper(this);  // 创建数据库帮助类实例
+        List<Todo> completedList = dbHelper.getCompletedTodos();  // 从数据库获取已完成的待办事项
 
-        RecyclerView recyclerView = findViewById(R.id.recycler_view_completed);
-        adapter = new CompletedAdapter(completedList);
+        recyclerView = findViewById(R.id.recycler_view_completed);
+
+        adapter = new CompletedAdapter(completedList, new CompletedAdapter.TodoItemListener() {
+            @Override
+            public void onRestoreItem(int position) {
+                // 恢复已完成的待办事项
+                Todo todo = completedList.get(position);
+                todo.setCompleted(false); // 设置为未完成
+                dbHelper.updateTodo(todo); // 更新数据库
+                completedList.remove(position); // 从列表中移除
+                adapter.notifyItemRemoved(position); // 通知适配器更新
+            }
+        });
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
+        recyclerView.setAdapter(adapter);  // 设置适配器
 
         // 添加滑动删除功能
         ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
@@ -43,12 +56,23 @@ public class CompletedActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getAdapterPosition();
-                Todo todo = completedList.get(position);
-                dbHelper.deleteTodo(todo.getId());
-                completedList.remove(position);
-                adapter.notifyItemRemoved(position);
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition(); // 获取被滑动的项的位置
+                Todo todo = completedList.get(position); // 获取待办事项
+
+                // 弹出确认删除对话框
+                new AlertDialog.Builder(CompletedActivity.this)
+                        .setTitle("删除已完成待办")
+                        .setMessage("确定要删除这个已完成待办事项吗？")
+                        .setPositiveButton("确定", (dialog, which) -> {
+                            dbHelper.deleteTodo(todo.getId()); // 从数据库中删除
+                            completedList.remove(position); // 从列表中移除
+                            adapter.notifyItemRemoved(position); // 通知适配器更新
+                        })
+                        .setNegativeButton("取消", (dialog, which) -> {
+                            adapter.notifyItemChanged(position); // 取消删除，刷新该项
+                        })
+                        .show(); // 显示确认对话框
             }
 
             @Override

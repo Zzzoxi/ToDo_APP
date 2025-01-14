@@ -3,6 +3,7 @@ package com.example.chapter03;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
@@ -10,10 +11,9 @@ import java.util.List;
 import android.util.Log;
 
 public class TodoDbHelper extends SQLiteOpenHelper {
-    private static final String DATABASE_NAME = "todo.db";
-    private static final int DATABASE_VERSION = 4;
-
-    private static final String TABLE_TODO = "todos";
+    private static final String DATABASE_NAME = "todo.db";         // 数据库名称
+    private static final int DATABASE_VERSION = 4;                 // 版本号
+    private static final String TABLE_TODO = "todos";              // 表名
     private static final String COLUMN_ID = "_id";
     private static final String COLUMN_TEXT = "text";
     private static final String COLUMN_COMPLETED = "completed";
@@ -24,26 +24,30 @@ public class TodoDbHelper extends SQLiteOpenHelper {
     private static final String COLUMN_TODO_ID = "todo_id";
     private static final String COLUMN_IMAGE_PATH = "image_path";
 
-    public TodoDbHelper(Context context) {
+    public TodoDbHelper(Context context) {     // 初始化数据库名称和版本
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        // 数据库创建
+        // 创建待办事项表
         String createTodoTable = "CREATE TABLE " + TABLE_TODO + " (" +
-                COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +      // 主键
                 COLUMN_TEXT + " TEXT, " +
                 COLUMN_COMPLETED + " INTEGER, " +
-                COLUMN_POSITION + " INTEGER, " +
+                COLUMN_POSITION + " INTEGER, " +   // 待办事项在列表中的位置，便于排序
                 COLUMN_COMPLETED_TIME + " INTEGER, " +
                 COLUMN_DUE_TIME + " INTEGER)";
 
+        // 创建图片表
         String createImageTable = "CREATE TABLE " + TABLE_IMAGES + " (" +
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_TODO_ID + " INTEGER, " +
                 COLUMN_IMAGE_PATH + " TEXT, " +
                 "FOREIGN KEY(" + COLUMN_TODO_ID + ") REFERENCES " +
                 TABLE_TODO + "(" + COLUMN_ID + ") ON DELETE CASCADE)";
+                // 定义外键，确保todo_id列引用todos表中的_ids列，如果待办事项被删除，相关图片记录也会被自动删除
 
         db.execSQL(createTodoTable);
         db.execSQL(createImageTable);
@@ -51,13 +55,13 @@ public class TodoDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_TODO);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_TODO);     // 数据库升级
         onCreate(db);
     }
 
-    public void saveTodo(Todo todo) {
+    public void saveTodo(Todo todo) {          // 保存待办事项
         SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
+        db.beginTransaction();       // 开始事务
         try {
             ContentValues todoValues = new ContentValues();
             todoValues.put(COLUMN_TEXT, todo.getText());
@@ -66,7 +70,12 @@ public class TodoDbHelper extends SQLiteOpenHelper {
             todoValues.put(COLUMN_COMPLETED_TIME, todo.getCompletedTime());
             todoValues.put(COLUMN_DUE_TIME, todo.getDueTime());
             long todoId = db.insert(TABLE_TODO, null, todoValues);
-            todo.setId(todoId);
+            if (todoId != -1) { // 检查插入是否成功
+                todo.setId(todoId);
+            } else {
+                // 处理插入失败的情况
+                throw new SQLException("插入待办事项失败");
+            }
 
             for (String path : todo.getImagePaths()) {
                 ContentValues imageValues = new ContentValues();
@@ -81,19 +90,27 @@ public class TodoDbHelper extends SQLiteOpenHelper {
         }
     }
 
+    // 加载待办事项的图片
     private void loadTodoImages(SQLiteDatabase db, Todo todo) {
+        // 构建 SQL 查询语句，选择与特定待办事项 ID 相关的图片路径
         String query = "SELECT " + COLUMN_IMAGE_PATH + " FROM " + TABLE_IMAGES +
                 " WHERE " + COLUMN_TODO_ID + " = ?";
+        // 使用 try-with-resources 语句自动管理 Cursor 的关闭
         try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(todo.getId())})) {
+            // 遍历查询结果
             while (cursor.moveToNext()) {
+                // 获取当前行的图片路径
                 String path = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMAGE_PATH));
+                // 将图片路径添加到待办事项对象中
                 todo.addImagePath(path);
             }
         }
     }
 
+    // 读取待办事项
     public List<Todo> getAllTodos() {
         List<Todo> todoList = new ArrayList<>();
+        // 创建sql语句
         String selectQuery = "SELECT * FROM " + TABLE_TODO +
                 " WHERE " + COLUMN_COMPLETED + " = 0" +
                 " ORDER BY " + COLUMN_POSITION;
@@ -164,27 +181,7 @@ public class TodoDbHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    public List<Todo> getUncompletedTodos() {
-        List<Todo> todoList = new ArrayList<>();
-        String selectQuery = "SELECT * FROM " + TABLE_TODO +
-                " WHERE " + COLUMN_COMPLETED + " = 0" +
-                " ORDER BY " + COLUMN_POSITION;
-        SQLiteDatabase db = this.getReadableDatabase();
-        try (Cursor cursor = db.rawQuery(selectQuery, null)) {
-            int textIndex = cursor.getColumnIndexOrThrow(COLUMN_TEXT);
-            int positionIndex = cursor.getColumnIndexOrThrow(COLUMN_POSITION);
-
-            while (cursor.moveToNext()) {
-                String text = cursor.getString(textIndex);
-                int position = cursor.getInt(positionIndex);
-                Todo todo = new Todo(text, position);
-                todoList.add(todo);
-            }
-        }
-        db.close();
-        return todoList;
-    }
-
+    // 获取已完成的事项
     public List<Todo> getCompletedTodos() {
         List<Todo> todoList = new ArrayList<>();
         String selectQuery = "SELECT * FROM " + TABLE_TODO +
@@ -196,6 +193,7 @@ public class TodoDbHelper extends SQLiteOpenHelper {
             int textIndex = cursor.getColumnIndexOrThrow(COLUMN_TEXT);
             int positionIndex = cursor.getColumnIndexOrThrow(COLUMN_POSITION);
             int timeIndex = cursor.getColumnIndexOrThrow(COLUMN_COMPLETED_TIME);
+            int dueTimeIndex = cursor.getColumnIndexOrThrow(COLUMN_DUE_TIME);
 
             while (cursor.moveToNext()) {
                 String text = cursor.getString(textIndex);
@@ -204,8 +202,12 @@ public class TodoDbHelper extends SQLiteOpenHelper {
                 todo.setId(cursor.getLong(idIndex));
                 todo.setCompleted(true);
                 todo.setCompletedTime(cursor.getLong(timeIndex));
+                todo.setDueTime(cursor.getLong(dueTimeIndex));
                 todoList.add(todo);
             }
+        }
+        for (Todo todo : todoList) {
+            loadTodoImages(db, todo);
         }
         db.close();
         return todoList;

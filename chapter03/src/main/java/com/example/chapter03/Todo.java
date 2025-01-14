@@ -4,12 +4,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Todo {
+    // 唯一标识符，用于区分不同的待办事项
     private long id;
+
+    // 待办事项的文本描述
     private String text;
+
+    // 表示待办事项是否已完成
     private boolean completed;
+
+    // 待办事项在列表中的位置
     private int position;
+
+    // 记录待办事项完成的时间
     private long completedTime;
+
+    // 记录待办事项的截止时间
     private long dueTime;
+
+    // 存储与待办事项相关的图片路径列表
     private List<String> imagePaths;
 
     public Todo(String text, int position) {

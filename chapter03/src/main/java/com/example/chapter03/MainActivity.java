@@ -1,10 +1,6 @@
 package com.example.chapter03;
 
 import android.content.Intent;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -20,10 +16,8 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -42,23 +36,22 @@ import android.widget.ImageButton;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import android.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoItemListener {
-    private static final int PICK_IMAGES_REQUEST = 1;
+    private static final int PICK_IMAGES_REQUEST = 1;   // 图片选择请求码
     private static final int PERMISSION_REQUEST_CODE = 2;
     private static final int EDIT_TODO_REQUEST = 3;
-    private List<Todo> todoList;
+    private List<Todo> todoList;   // 待办事项列表
     private TodoAdapter adapter;
     private TodoDbHelper dbHelper;
-    private EditText editTextTodo;
-    private TextView textViewDueDate;
-    private LinearLayout dropdownPanel;
-    private long selectedDueTime = 0;
-    private List<String> selectedImagePaths = new ArrayList<>();
-    private RecyclerView recyclerViewImages;
-    private ImageAdapter imageAdapter;
+    private EditText editTextTodo;         // 输入待办事项的 EditText
+    private TextView textViewDueDate;     // 显示截止时间的 TextView
+    private LinearLayout dropdownPanel;   // 下拉面板
+    private long selectedDueTime = 0;       // 选中的截止时间
+    private List<String> selectedImagePaths = new ArrayList<>();   // 选中的图片路径
+    private RecyclerView recyclerViewImages;  // 图片预览的 RecyclerView
+    private ImageAdapter imageAdapter;  // 图片适配器
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,19 +61,19 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         // 初始化存储
         dbHelper = new TodoDbHelper(this);
         todoList = new ArrayList<>(); // 确保初始化列表
-        todoList.addAll(dbHelper.getAllTodos());
+        todoList.addAll(dbHelper.getAllTodos());   // 从数据库加载所有待办事项
 
         // 初始化视图
-        editTextTodo = findViewById(R.id.edit_text_todo);
-        Button buttonAdd = findViewById(R.id.button_add);
-        RecyclerView recyclerView = findViewById(R.id.recycler_view_todos);
-        dropdownPanel = findViewById(R.id.dropdown_panel);
-        textViewDueDate = findViewById(R.id.text_view_due_date);
-        TextView textViewAddImages = findViewById(R.id.text_view_add_images);
-        BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
+        editTextTodo = findViewById(R.id.edit_text_todo);  // 获取输入框
+        Button buttonAdd = findViewById(R.id.button_add);  // 获取添加按钮
+        RecyclerView recyclerView = findViewById(R.id.recycler_view_todos);  // 获取待办事项列表中的recyclerView
+        dropdownPanel = findViewById(R.id.dropdown_panel);   // 获取下拉面板
+        textViewDueDate = findViewById(R.id.text_view_due_date);  // 获取截止时间的textview
+        TextView textViewAddImages = findViewById(R.id.text_view_add_images);  // 获取选择时间的textview
+        BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);  // 获取底部导航
 
         // 设置待办事项列表
-        adapter = new TodoAdapter(todoList, this);
+        adapter = new TodoAdapter(todoList, this);   // 创建适配器
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemViewCacheSize(20);
@@ -143,19 +136,19 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
 
         // 添加新待办事项
         buttonAdd.setOnClickListener(v -> {
-            String todoText = editTextTodo.getText().toString().trim();
+            String todoText = editTextTodo.getText().toString().trim();   // 获取输入的待办
             if (!todoText.isEmpty()) {
-                Todo newTodo = new Todo(todoText, todoList.size());
-                newTodo.setDueTime(selectedDueTime);
-                for (String path : selectedImagePaths) {
+                Todo newTodo = new Todo(todoText, todoList.size());  // 创建新待办todo
+                newTodo.setDueTime(selectedDueTime);  // 设置待办截止时间
+                for (String path : selectedImagePaths) {   // 设置待办相关图片
                     newTodo.addImagePath(path);
                 }
-                todoList.add(newTodo);
-                adapter.notifyItemInserted(todoList.size() - 1);
-                editTextTodo.setText("");
-                dbHelper.saveTodo(newTodo);
+                todoList.add(newTodo);   // 在总待办中添加新待办事项
+                adapter.notifyItemInserted(todoList.size() - 1);  // 更新视图
+                editTextTodo.setText("");  // 重置输入文本框
+                dbHelper.saveTodo(newTodo);  // 将新待办事项写进数据库
 
-                // 重置所有状态
+                // 重置所有状态，准备下一条新待办
                 selectedDueTime = 0;
                 selectedImagePaths.clear();
                 imageAdapter.notifyDataSetChanged();
@@ -165,10 +158,11 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
             }
         });
 
-        View rootView = findViewById(android.R.id.content);
+        // 用户点击面板外部内容，将自清空并收缩下拉面板
+        View rootView = findViewById(android.R.id.content);  // 获取根视图
         rootView.setOnClickListener(v -> {
             if (dropdownPanel.getVisibility() == View.VISIBLE) {
-                clearAndCloseDropdown();
+                clearAndCloseDropdown();  // 如果下拉面板可见，清空并关闭面板
             }
         });
 
@@ -179,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
 
         // 设置返回按钮点击事件
         ImageButton buttonCollapse = findViewById(R.id.button_collapse);
-        buttonCollapse.setOnClickListener(v -> clearAndCloseDropdown());
+        buttonCollapse.setOnClickListener(v -> clearAndCloseDropdown());  // 点击返回按钮时清空并关闭面板
     }
 
     @Override
@@ -188,28 +182,35 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         // 确保返回时选中正确的标签
         BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
         bottomNavigation.setSelectedItemId(R.id.navigation_todo);
+
+        // 重新加载未完成事项
+        todoList.clear(); // 清空当前列表
+        todoList.addAll(dbHelper.getAllTodos()); // 从数据库重新加载未完成事项
+        adapter.notifyDataSetChanged(); // 通知适配器更新
     }
 
+    // 显示日期选择器（年月日）
     private void showDateTimePicker() {
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance();  // 获取当前时间
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
-                    showTimePicker(year, month, dayOfMonth);
+                    showTimePicker(year, month, dayOfMonth);   // 选择日期后显示时间选择器
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
-        datePickerDialog.show();
+        datePickerDialog.show();  // 显示日期选择器
     }
 
+    // 时间选择器（时分）
     private void showTimePicker(int year, int month, int day) {
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance();  // 获取当前时间
         TimePickerDialog timePickerDialog = new TimePickerDialog(
                 this,
                 (view, hourOfDay, minute) -> {
-                    calendar.set(year, month, day, hourOfDay, minute);
+                    calendar.set(year, month, day, hourOfDay, minute);  // 设置选择的时间
                     selectedDueTime = calendar.getTimeInMillis();
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
                     textViewDueDate.setText("截止时间：" + sdf.format(calendar.getTime()));
@@ -279,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
                     Uri imageUri = data.getClipData().getItemAt(i).getUri();
                     String path = getRealPathFromUri(imageUri);
                     if (path != null) {
-                        selectedImagePaths.add(path);
+                        selectedImagePaths.add(path); // 添加选中图片的路径
                     }
                 }
             } else if (data.getData() != null) {
@@ -290,10 +291,11 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
                     selectedImagePaths.add(path);
                 }
             }
-            recyclerViewImages.setVisibility(View.VISIBLE);
-            imageAdapter.notifyDataSetChanged();
+            recyclerViewImages.setVisibility(View.VISIBLE);   // 显示图片预览
+            imageAdapter.notifyDataSetChanged();  // 通知适配器更新
         }
 
+        // 如果选择编辑待办
         if (requestCode == EDIT_TODO_REQUEST && resultCode == RESULT_OK) {
             // 刷新列表
             todoList.clear(); // 清空当前列表
@@ -308,12 +310,12 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         try (Cursor cursor = getContentResolver().query(uri, projection, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                return cursor.getString(columnIndex);
+                return cursor.getString(columnIndex);  // 返回图片的真实路径
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return null;  // 返回 null 如果未找到路径
     }
 
     private void showFullImage(String imagePath) {
@@ -322,21 +324,22 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         ImageView imageView = new ImageView(this);
         Glide.with(this)
                 .load(imagePath)
-                .into(imageView);
+                .into(imageView);  // 使用 Glide 加载图片
         dialog.setContentView(imageView);
-        imageView.setOnClickListener(v -> dialog.dismiss());
+        imageView.setOnClickListener(v -> dialog.dismiss());  // 点击图片关闭对话框
         dialog.show();
     }
 
+    // 待办事项完成
     @Override
     public void onItemChecked(int position, boolean isChecked) {
-        if (isChecked) {
+        if (isChecked) { // 如果待办事项被勾选
             Todo todo = todoList.get(position);
-            todo.setCompleted(true);
-            todo.setCompletedTime(System.currentTimeMillis());
-            dbHelper.updateTodo(todo);
-            todoList.remove(position);
-            adapter.notifyItemRemoved(position);
+            todo.setCompleted(true); // 设置为已完成
+            todo.setCompletedTime(System.currentTimeMillis()); // 记录完成时间
+            dbHelper.updateTodo(todo); // 更新数据库
+            todoList.remove(position); // 从列表中移除
+            adapter.notifyItemRemoved(position); // 通知适配器更新
         }
     }
 
@@ -347,12 +350,12 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
                 .setMessage("确定要删除这个待办事项吗？")
                 .setPositiveButton("确定", (dialog, which) -> {
                     Todo todo = todoList.get(position);
-                    dbHelper.deleteTodo(todo.getId());
-                    todoList.remove(position);
-                    adapter.notifyItemRemoved(position);
+                    dbHelper.deleteTodo(todo.getId()); // 从数据库中删除
+                    todoList.remove(position); // 从列表中移除
+                    adapter.notifyItemRemoved(position); // 通知适配器更新
                 })
                 .setNegativeButton("取消", null)
-                .show();
+                .show(); // 显示确认对话框
     }
 
     @Override
@@ -384,6 +387,8 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
         imm.hideSoftInputFromWindow(editTextTodo.getWindowToken(), 0);
     }
 
+    // 实现拖动排序
+    // 允许用户通过简单的上下拖动来重新排列待办事项列表
     private void setupItemTouchHelper(RecyclerView recyclerView) {
         ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) { // 只允许上下拖动，禁用左右滑动
@@ -414,7 +419,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.TodoI
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                // 不需要实现，因为我们禁用了滑动
+                // 不需要实现，因为禁用了滑动
             }
 
             @Override
